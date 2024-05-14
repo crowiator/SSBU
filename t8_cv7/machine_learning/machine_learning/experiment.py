@@ -5,11 +5,13 @@ from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import StratifiedKFold, train_test_split
 import logging
 
-from machine_learning.data_handling import DataScaler
-from machine_learning.model_wrappers import ModelOptimizer, ModelTrainer
+from data_handling import DataScaler
+from model_wrappers import ModelOptimizer, ModelTrainer
 
 # Set up logging to record model accuracies in a CSV file
-logging.basicConfig(filename='../outputs/model_accuracies.csv', filemode='w',  level=logging.INFO, format='%(asctime)s, %(message)s')
+logging.basicConfig(filename='../outputs/model_accuracies.csv', filemode='w', level=logging.INFO,
+                    format='%(asctime)s, %(message)s')
+
 
 class Experiment:
     """A class to handle the entire experiment of training and evaluating models."""
@@ -43,8 +45,8 @@ class Experiment:
         """Run a single replication of training and evaluating the models."""
         print(f"Starting replication {replication + 1}/{self.n_replications}.")
         X_resampled, y_resampled = self.balance_dataset(X, y)
-        
-        for model_name,_ in self.models_params.items():
+
+        for model_name, _ in self.models_params.items():
             self.train_and_evaluate_model(model_name, X_resampled, y_resampled, self.datascaler, replication)
 
     def balance_dataset(self, X, y):
@@ -63,20 +65,20 @@ class Experiment:
         trainer = ModelTrainer(self.models[model_name], best_params)
 
         # Split the resampled data into training and test sets
-        X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.4,)
+        X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.4)
 
         # Scale the data using the DataScaler class
         X_train, X_test = datascaler.scale_data(X_train, X_test)
 
         # Train and evaluate the model
         trainer.train(X_train, y_train)
-        accuracy, f1, roc_auc, predictions = trainer.evaluate(X_test, y_test)
+        accuracy, f1, roc_auc, precision, predictions = trainer.evaluate(X_test, y_test)
 
-        self.store_results(model_name, replication, accuracy, f1, roc_auc, best_params)
+        self.store_results(model_name, replication, accuracy, f1, roc_auc, precision, best_params)
         # Append the confusion matrix to the list for this model
         self.replication_conf_matrices[model_name].append(confusion_matrix(y_test, predictions))
 
-    def store_results(self, model_name, replication, accuracy, f1, roc_auc, best_params):
+    def store_results(self, model_name, replication, accuracy, f1, roc_auc, precision, best_params):
         """Store the results of a single evaluation."""
         new_row = pd.DataFrame({
             'model': model_name,
@@ -84,12 +86,13 @@ class Experiment:
             'accuracy': accuracy,
             'f1_score': f1,
             'roc_auc': roc_auc,
+            'precision': precision,
             'best_params': [best_params]
         })
         self.results = pd.concat([self.results, new_row], ignore_index=True)
         logging.info(
             f"{model_name}, Replication: {replication}, Accuracy: {accuracy:.4f}, F1: {f1:.4f}, "
-            f"ROC AUC: {roc_auc:.4f},  Params: {best_params}")
+            f"ROC AUC: {roc_auc:.4f}, Precision: {precision:.4f},  Params: {best_params}")
 
     def calculate_mean_conf_matrices(self):
         """Calculate the mean confusion matrix for each model."""

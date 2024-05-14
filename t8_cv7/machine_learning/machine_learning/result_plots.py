@@ -1,11 +1,23 @@
 import numpy as np
 from matplotlib import pyplot as plt
 import seaborn as sns
+import os
 
 class Plotter:
     """A class for plotting the results of machine learning experiments."""
 
-    def plot_metric_density(self, results, metrics=('accuracy', 'f1_score', 'roc_auc')):
+    def __init__(self, save_directory='machine_learning'):
+        """
+        Initialize the Plotter instance.
+
+        Parameters:
+        - save_directory: str, directory to save plots.
+        """
+        self.save_directory = save_directory
+        if not os.path.exists(save_directory):
+            os.makedirs(save_directory)
+
+    def plot_metric_density(self, results, metrics=('accuracy', 'f1_score', 'roc_auc', 'precision')):
         """
         Plot density plots for specified metrics.
 
@@ -24,14 +36,17 @@ class Plotter:
             if i == 0:
                 ax.legend()
         plt.tight_layout()
+        plt.savefig(os.path.join(self.save_directory, 'metric_density.png'))
         plt.show()
 
     def plot_evaluation_metric_over_replications(self, all_metric_results, title, metric_name):
         """
-        Plot accuracies for each model over all replications.
+        Plot specified metric for each model over all replications.
 
         Parameters:
-        - all_accuracies: Dict containing accuracies for each model.
+        - all_metric_results: Dict containing the metric results for each model.
+        - title: Title of the plot.
+        - metric_name: Name of the metric to be plotted.
         """
         plt.figure(figsize=(10, 5))
         colors = ['green', 'orange', 'blue']  # Extend the color list as needed
@@ -43,6 +58,7 @@ class Plotter:
         plt.xlabel('Replication')
         plt.ylabel(metric_name)
         plt.legend()
+        plt.savefig(os.path.join(self.save_directory, f'{title.replace(" ", "_").lower()}.png'))
         plt.show()
 
     def plot_confusion_matrices(self, confusion_matrices):
@@ -58,6 +74,7 @@ class Plotter:
             plt.title(f'Average Confusion Matrix: {model_name}')
             plt.xlabel('Predicted label')
             plt.ylabel('True label')
+            plt.savefig(os.path.join(self.save_directory, f'{model_name}_confusion_matrix.png'))
             plt.show()
 
     def print_best_parameters(self, results):
@@ -71,3 +88,12 @@ class Plotter:
             model_results = results[results['model'] == model_name]
             best_params_list = model_results['best_params'].value_counts().index[0]
             print(f"Most frequently chosen best parameters for {model_name}: {best_params_list}")
+
+    def plot_precision_over_replications(self, all_precision_results):
+        """
+        Plot precision for each model over all replications.
+
+        Parameters:
+        - all_precision_results: Dict containing precision results for each model.
+        """
+        self.plot_evaluation_metric_over_replications(all_precision_results, 'Precision over Replications', 'Precision')
